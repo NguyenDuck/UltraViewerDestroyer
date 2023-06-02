@@ -6,13 +6,13 @@ namespace UltraViewerDestroyer
 {
     public partial class MainService : ServiceBase
     {
-        private ManualResetEvent stopSignal = new ManualResetEvent(false);
-        private Thread workerThread;
+        private readonly ManualResetEvent stopSignal = new ManualResetEvent(false);
+        private readonly Thread worker;
 
         public MainService()
         {
             InitializeComponent();
-            //StreamWriter w = File.CreateText(AppDomain.CurrentDomain.BaseDirectory + "log.txt");
+            worker = new Thread(Execute);
         }
 
         public void OnDebug()
@@ -22,20 +22,22 @@ namespace UltraViewerDestroyer
 
         protected override void OnStart(string[] args)
         {
-            workerThread = new Thread(Execute);
-            workerThread.Start();
+            worker.Start();
         }
 
         protected override void OnStop()
         {
             stopSignal.Set();
-            workerThread.Join();
+            worker.Join();
         }
 
         private void Execute()
         {
-            if (IsValorantRunning()) foreach (Process p in GetUltraViewerProgress()) p.Kill();
-            Thread.Sleep(50);
+            while (true)
+            {
+                if (IsValorantRunning()) foreach (Process p in GetUltraViewerProgress()) p.Kill();
+                Thread.Sleep(50);
+            }
         }
 
         private bool IsValorantRunning()
